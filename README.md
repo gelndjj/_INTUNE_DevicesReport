@@ -1,4 +1,4 @@
-# 🖥️ _ENTRA_DevicesReport
+# 🖥️ _INTUNE_DevicesReport
 
 Export a detailed report of all Intune-managed and Entra-registered devices using Microsoft Graph API.  
 This PowerShell script provides a **comprehensive view of device state, compliance, encryption, join type, and more** — ideal for **security auditing**, **inventory tracking**, and **lifecycle management**.
