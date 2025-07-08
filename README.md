@@ -20,32 +20,36 @@ This PowerShell script provides a **comprehensive view of device state, complian
 
 | Column | Description |
 |--------|-------------|
+| `Id` | Unique Intune device ID (used for Graph queries) |
 | `DeviceName` | Name of the device |
 | `SerialNumber` | Device serial number |
 | `Model` / `Manufacturer` | Hardware identifiers |
-| `OperatingSystem` / `OSVersion` | System type and build |
-| `DeviceType` | Form factor (e.g., windowsRT, mobile, etc.) |
-| `JoinType` | Entra join status (`azureADJoined`, `azureADRegistered`, etc.) |
+| `OperatingSystem` / `OSVersion` | OS type and version (e.g., Windows 11, iOS) |
+| `DeviceType` | Device form factor (e.g., windowsRT, mobile, etc.) |
+| `JoinType` | Entra ID join status (`azureADJoined`, `azureADRegistered`, etc.) |
 | `AADRegistered` | Whether the device is registered in Entra ID |
-| `AzureADDeviceId` | Unique Azure AD device ID |
-| `EnrollmentType` | How the device was enrolled (Autopilot, BYOD, etc.) |
-| `RegistrationState` | High-level registration state |
-| `AutopilotEnrolled` | Indicates Autopilot usage |
-| `ManagedDeviceOwnerType` | `company` or `personal` |
-| `ManagementState` / `ManagementAgent` | Intune management state and agent type |
-| `IsEncrypted` | BitLocker/device encryption status |
-| `JailBroken` | Compliance status (mobile devices) |
+| `AzureADDeviceId` | Azure AD device GUID |
+| `EnrollmentType` | Enrollment method (Autopilot, manual, etc.) |
+| `RegistrationState` | Registration state in Intune |
+| `AutopilotEnrolled` | Whether Autopilot was used for setup |
+| `ManagedDeviceOwnerType` | Ownership: `company` or `personal` |
+| `ManagementState` / `ManagementAgent` | Intune management state and agent |
+| `IsEncrypted` | Device encryption status (BitLocker/FileVault/etc.) |
+| `JailBroken` | Jailbreak/root detection (mostly for mobile) |
 | `ComplianceState` | Intune compliance status |
-| `LastSyncDateTime` / `EnrolledDateTime` | Sync and onboarding dates |
-| `EmailAddress` / `UserPrincipalName` / `UserDisplayName` | Device owner/user info |
-| `ManagedDeviceName` | Internal managed name |
-| `WiFiMacAddress` / `EthernetMacAddress` | Network identifiers |
-| `TotalStorageGB` / `FreeStorageGB` | Disk space info in GB |
-| `PartnerReportedThreatState` | Device risk status |
-| `WindowsActiveMalwareCount` / `WindowsRemediatedMalwareCount` | Defender threat data |
-| `ChassisType` / `IsSupervised` | Physical form and management supervision |
-| `RetireAfterDateTime` / `ManagementCertificateExpiry` | Lifecycle & cert status |
-| `Notes` | Admin notes if available |
+| `LastSyncDateTime` / `EnrolledDateTime` | Last successful sync and first enrollment time |
+| `EmailAddress` / `UserPrincipalName` / `UserDisplayName` | Linked user account info |
+| `ManagedDeviceName` | Internal managed name in Intune |
+| `WiFiMacAddress` / `EthernetMacAddress` | Network MAC addresses |
+| `TotalStorageGB` / `FreeStorageGB` | Disk size and free space in GB |
+| `PartnerReportedThreatState` | Device threat level from partners like Defender ATP |
+| `WindowsActiveMalwareCount` / `WindowsRemediatedMalwareCount` | Number of detected and remediated threats |
+| `ChassisType` / `IsSupervised` | Physical form factor & supervision state |
+| `RetireAfterDateTime` | Scheduled retirement time if applicable |
+| `ManagementCertificateExpiry` | Intune management certificate expiry date |
+| `Notes` | Admin notes from Intune |
+| `LastActionName` / `LastActionStart` / `LastActionState` | Most recent Intune action (e.g., wipe, reboot), start time, and result |
+| `LastLogonDateTime` | Last recorded user login timestamp |
 
 ## 🧠 Prerequisites
 
@@ -62,7 +66,7 @@ This PowerShell script provides a **comprehensive view of device state, complian
 Generates a CSV in the current directory:
 
 ```plain
-EntraDevices_Report_YYYYMMDD_HHMMSS.csv
+IntuneDevices_Report_YYYYMMDD_HHMMSS.csv
 ```
 
 ## 🛠️ Usage
