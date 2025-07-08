@@ -1,62 +1,102 @@
-# Requires Microsoft.Graph.DeviceManagement module
+# Requires: PowerShell 7+, Microsoft.Graph
 Connect-MgGraph -Scopes "DeviceManagementManagedDevices.Read.All"
 
-$devices = @()
-$uri = "https://graph.microsoft.com/beta/deviceManagement/managedDevices"
+$startTime = Get-Date
+Write-Host "⏱️ Script started at $startTime"
+Write-Host "🔄 Fetching managed devices list from Microsoft Graph..."
 
-Write-Host "Fetching managed devices from Microsoft Graph..."
+$baseUri = "https://graph.microsoft.com/beta/deviceManagement/managedDevices"
+$deviceList = @()
+$nextLink = $baseUri
 
-do {
-    $response = Invoke-MgGraphRequest -Uri $uri -Method GET
+# Gather all device IDs from paginated results
+while ($nextLink) {
+    $page = Invoke-MgGraphRequest -Uri $nextLink -Method GET
+    $deviceList += $page.value
+    $nextLink = $page.'@odata.nextLink'
+}
 
-    foreach ($device in $response.value) {
-        $devices += [PSCustomObject]@{
-            DeviceName                     = $device.deviceName
-            SerialNumber                   = $device.serialNumber
-            Model                          = $device.model
-            Manufacturer                   = $device.manufacturer
-            OperatingSystem                = $device.operatingSystem
-            OSVersion                      = $device.osVersion
-            DeviceType                     = $device.deviceType
-            JoinType                       = $device.joinType
-            AADRegistered                  = $device.aadRegistered -as [bool]
-            AzureADDeviceId                = $device.azureADDeviceId
-            EnrollmentType                 = $device.deviceEnrollmentType
-            RegistrationState             = $device.deviceRegistrationState
-            AutopilotEnrolled              = $device.autopilotEnrolled -as [bool]
-            ManagedDeviceOwnerType         = $device.managedDeviceOwnerType
-            ManagementState                = $device.managementState
-            ManagementAgent                = $device.managementAgent
-            IsEncrypted                    = $device.isEncrypted -as [bool]
-            JailBroken                     = $device.jailBroken
-            ComplianceState                = $device.complianceState
-            LastSyncDateTime               = $device.lastSyncDateTime
-            EnrolledDateTime               = $device.enrolledDateTime
-            EmailAddress                   = $device.emailAddress
-            UserPrincipalName              = $device.userPrincipalName
-            UserDisplayName                = $device.userDisplayName
-            ManagedDeviceName              = $device.managedDeviceName
-            WiFiMacAddress                 = $device.wiFiMacAddress
-            EthernetMacAddress             = $device.ethernetMacAddress
-            TotalStorageGB                 = [math]::Round(($device.totalStorageSpaceInBytes / 1GB), 2)
-            FreeStorageGB                  = [math]::Round(($device.freeStorageSpaceInBytes / 1GB), 2)
-            PartnerReportedThreatState     = $device.partnerReportedThreatState
-            WindowsActiveMalwareCount      = $device.windowsActiveMalwareCount
-            WindowsRemediatedMalwareCount  = $device.windowsRemediatedMalwareCount
-            ChassisType                    = $device.chassisType
-            IsSupervised                   = $device.isSupervised -as [bool]
-            RetireAfterDateTime            = if ($device.retireAfterDateTime -eq '0001-01-01T00:00:00Z') { $null } else { $device.retireAfterDateTime }
-            ManagementCertificateExpiry    = $device.managementCertificateExpirationDate
-            Notes                          = $device.notes
-        }
+Write-Host "📦 Total devices to process: $($deviceList.Count)"
+Write-Host "🚀 Fetching full device details in parallel..."
+
+# Parallel block to process each device in parallel
+$results = $deviceList | ForEach-Object -Parallel {
+
+    # Load the Microsoft.Graph module in each thread
+    Import-Module Microsoft.Graph -Force
+
+    # Auth is passed via parent session
+    $id = $_.id
+    $baseUri = "https://graph.microsoft.com/beta/deviceManagement/managedDevices"
+
+    # Fetch full device object
+    $fullDevice = Invoke-MgGraphRequest -Uri "$baseUri/$id" -Method GET
+
+    # Most recent logon
+    $logon = $fullDevice.usersLoggedOn |
+             Sort-Object -Property lastLogOnDateTime -Descending |
+             Select-Object -First 1
+
+    # Most recent action
+    $action = $fullDevice.deviceActionResults |
+              Sort-Object -Property startDateTime -Descending |
+              Select-Object -First 1
+
+    # Build output row
+    [PSCustomObject]@{
+        Id                             = $fullDevice.id
+        DeviceName                     = $fullDevice.deviceName
+        SerialNumber                   = $fullDevice.serialNumber
+        Model                          = $fullDevice.model
+        Manufacturer                   = $fullDevice.manufacturer
+        OperatingSystem                = $fullDevice.operatingSystem
+        OSVersion                      = $fullDevice.osVersion
+        DeviceType                     = $fullDevice.deviceType
+        JoinType                       = $fullDevice.joinType
+        AADRegistered                  = [bool]$fullDevice.aadRegistered
+        AzureADDeviceId                = $fullDevice.azureADDeviceId
+        EnrollmentType                 = $fullDevice.deviceEnrollmentType
+        RegistrationState              = $fullDevice.deviceRegistrationState
+        AutopilotEnrolled              = [bool]$fullDevice.autopilotEnrolled
+        ManagedDeviceOwnerType         = $fullDevice.managedDeviceOwnerType
+        ManagementState                = $fullDevice.managementState
+        ManagementAgent                = $fullDevice.managementAgent
+        IsEncrypted                    = [bool]$fullDevice.isEncrypted
+        JailBroken                     = $fullDevice.jailBroken
+        ComplianceState                = $fullDevice.complianceState
+        LastSyncDateTime               = $fullDevice.lastSyncDateTime
+        EnrolledDateTime               = $fullDevice.enrolledDateTime
+        LastLogOnDateTime              = $logon.lastLogOnDateTime
+        LastActionName                 = $action.actionName
+        LastActionStart                = $action.startDateTime
+        LastActionState                = $action.actionState
+        EmailAddress                   = $fullDevice.emailAddress
+        UserPrincipalName              = $fullDevice.userPrincipalName
+        UserDisplayName                = $fullDevice.userDisplayName
+        ManagedDeviceName              = $fullDevice.managedDeviceName
+        WiFiMacAddress                 = $fullDevice.wiFiMacAddress
+        EthernetMacAddress             = $fullDevice.ethernetMacAddress
+        TotalStorageGB                 = [math]::Round(($fullDevice.totalStorageSpaceInBytes / 1GB), 2)
+        FreeStorageGB                  = [math]::Round(($fullDevice.freeStorageSpaceInBytes / 1GB), 2)
+        PartnerReportedThreatState     = $fullDevice.partnerReportedThreatState
+        WindowsActiveMalwareCount      = $fullDevice.windowsActiveMalwareCount
+        WindowsRemediatedMalwareCount  = $fullDevice.windowsRemediatedMalwareCount
+        ChassisType                    = $fullDevice.chassisType
+        IsSupervised                   = [bool]$fullDevice.isSupervised
+        RetireAfterDateTime            = if ($fullDevice.retireAfterDateTime -eq '0001-01-01T00:00:00Z') { $null } else { $fullDevice.retireAfterDateTime }
+        ManagementCertificateExpiry    = $fullDevice.managementCertificateExpirationDate
+        Notes                          = $fullDevice.notes
     }
 
-    $uri = $response.'@odata.nextLink'
-} while ($uri)
+} -ThrottleLimit 10 -AsJob | Receive-Job -Wait
 
 # Export to CSV
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
-$outputPath = ".\EntraDevices_Report_$timestamp.csv"
-$devices | Export-Csv -Path $outputPath -NoTypeInformation -Encoding UTF8
+$outputPath = ".\IntuneDevices_Report_$timestamp.csv"
+$results | Export-Csv -Path $outputPath -NoTypeInformation -Encoding UTF8
 
-Write-Host "Export complete: $outputPath"
+# Timer summary
+$endTime = Get-Date
+$duration = $endTime - $startTime
+Write-Host "`n✅ Export complete: $outputPath"
+Write-Host "⏱️ Total duration: $($duration.ToString())"
