@@ -83,4 +83,22 @@ The script will fetch all managed devices and export them into a clean, sortable
 This script requires the following Microsoft Graph delegated or application permission:
 
 DeviceManagementManagedDevices.Read.All
-You can grant these via Entra ID → App registrations or via delegated sign-in using Connect-MgGraph.
+Organization.Read.All
+
+## 🔧 Configuration Runbook (Automation Account)
+
+```pwsh
+Runbook_Template-DevicesReport.ps1
+```
+Before using this script:
+
+1. Replace `<YourTenant>.onmicrosoft.com` with your actual tenant domain.
+2. Replace the SharePoint URL:
+   - `https://<YourSharePointSite>.sharepoint.com/sites/<YourSiteName>`
+3. Ensure your Azure Automation Account has these modules:
+   - `GraphAuthentication`
+   - `PnP.PowerShell`
+4. Assign the following roles to the Managed Identity:
+   - **Contributor** on the SharePoint site
+
+---
