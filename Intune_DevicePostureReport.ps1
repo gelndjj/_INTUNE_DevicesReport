@@ -23,7 +23,7 @@ Write-Host "🚀 Fetching full device details in parallel..."
 $results = $deviceList | ForEach-Object -Parallel {
 
     # Load the Microsoft.Graph module in each thread
-    Import-Module Microsoft.Graph -Force
+    # Import-Module Microsoft.Graph -Force
 
     # Auth is passed via parent session
     $id = $_.id
